@@ -24,8 +24,19 @@ function search($database, $settings, $term) {
 	# Photos
 	###
 
-	$query	= Database::prepare($database, "SELECT id, title, tags, public, star, album, thumbUrl, takestamp, url FROM ? WHERE title LIKE '%?%' OR description LIKE '%?%' OR tags LIKE '%?%'", array(LYCHEE_TABLE_PHOTOS, $term, $term, $term));
-	$result	= $database->query($query);
+	if (strpos($term, ',')) {
+		$items = array_filter(array_map('trim', explode(',', $term)), 'strlen');
+		$sql = "SELECT id, title, tags, public, star, album, thumbUrl, takestamp, url FROM ? WHERE " . implode(array_fill(0, count($items), "(title LIKE '%?%' OR description LIKE '%?%' OR tags LIKE '%?%')"), ' AND ');
+		$values = array(LYCHEE_TABLE_PHOTOS);
+		foreach ($items as $item) {
+			$values = array_merge($values, array_fill(1, 3, $item));
+		}
+		$query	= Database::prepare($database, $sql, $values);
+		$result	= $database->query($query);
+	} else {
+		$query	= Database::prepare($database, "SELECT id, title, tags, public, star, album, thumbUrl, takestamp, url FROM ? WHERE title LIKE '%?%' OR description LIKE '%?%' OR tags LIKE '%?%'", array(LYCHEE_TABLE_PHOTOS, $term, $term, $term));
+		$result	= $database->query($query);
+	}
 
 	while($photo = $result->fetch_assoc()) {
 
